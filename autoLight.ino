@@ -8,6 +8,7 @@
 const char hueHubIP[] = "192.168.1.12";  // Hue hub IP
 const int hueHubPort = 80;               //hue port
 bool lightState = 1;
+int lightMode = 0;
 
 //wifi details
 WiFiClient client;
@@ -34,7 +35,7 @@ typedef struct task {
 const unsigned short tasksNum = 1;
 task tasks[tasksNum];
 
-enum WifiS_States {WifiS_init,WifiS_on,WifiS_off,WifiS_button,WifiS_red};
+enum WifiS_States {WifiS_init,WifiS_on,WifiS_off,WifiS_button,WifiS_preset};
 int TickFct_WifiS(int state) { 
   switch(state) {
     case WifiS_init:
@@ -55,8 +56,11 @@ int TickFct_WifiS(int state) {
           break;
       }
 
+      //light presets
       if (digitalRead(button2) == HIGH) {
-            state = WifiS_red;
+            Serial.println("a2 press");
+            state = WifiS_preset;
+            break;
           }
           
     break;
@@ -64,8 +68,8 @@ int TickFct_WifiS(int state) {
   
 
 //    
-////    default:
-////      break; 
+    default:  
+      break; 
     
    }
   
@@ -115,16 +119,36 @@ int TickFct_WifiS(int state) {
       state = WifiS_button;
     break;
 
-    case WifiS_red:
+    case WifiS_preset:
       if (client.connect(hueHubIP, hueHubPort)) {
        Serial.println("Light On");
        client.println("PUT /api/ELqDQODw0Ih10TO0oMXpxXsHKV4ta6CHSuPEnS-0/lights/1/state HTTP/1.1"); //statements combined to improve performance
        client.println("keep-alive");
        client.println("Host: 192.168.1.12"); // statements combined to improve performance
-        client.println("Content-Length: 13");
+        client.println("Content-Length: 22");
         client.println("Content-Type: text/plain;charset=UTF-8");
         client.println();  // blank line before body
-        client.println("{\"hue\":65535}");
+        if (lightMode == 0) {
+          Serial.println("light 0");
+          client.println("{\"xy\":[0.3096,0.3216]}");  //white
+        }
+        if (lightMode == 1) {
+          Serial.println("light 1");
+          client.println("{\"xy\":[0.3826,0.1597]}");  //purple
+        }
+        if (lightMode == 2) {
+          Serial.println("light 2");
+          client.println("{\"xy\":[0.3584,0.4180]}");  //purple
+        }
+        if (lightMode == 3) {
+          Serial.println("light 3");
+          client.println("{\"xy\":[0.675,0.322]}");  //red
+        }
+
+        lightMode++;
+        if  (lightMode>=4) {
+          lightMode = 0;
+        }
         client.stop();  
       }
       state = WifiS_button;
